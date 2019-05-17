@@ -5,10 +5,13 @@
 
 #include "pgen.h"
 
-static ssize_t pgen_read(struct file *file, char __user *buffer, size_t len, loff_t *offset);
+// prototype definitions used to fill the file operations structure.
+static ssize_t pgen_read(struct file *file, char __user *buffer,
+		         size_t len, loff_t *offset);
 static int pgen_open(struct inode *node, struct file *file);
 static int pgen_release(struct inode *, struct file *);
 
+// pgen_fops describes the allowed operations available for a file.
 static const struct file_operations pgen_fops = {
 	.owner 	 = THIS_MODULE,
 	.read	 = pgen_read,
@@ -16,6 +19,8 @@ static const struct file_operations pgen_fops = {
 	.release = pgen_release,
 };
 
+// pgen_misc describes the misc device creation and behaviors.
+// It is used to create the /dev/pgen file.
 struct miscdevice pgen_misc = {
 	.minor	= MISC_DYNAMIC_MINOR,
 	.name	= MNAME,
@@ -23,45 +28,69 @@ struct miscdevice pgen_misc = {
 	.mode	= 0644,
 };
 
-static int is_used = 0;
+// is_used is a boolean that locks the access to
+// the device if it is already in use.
+static int 	is_used = 0;
 
-static ssize_t pgen_read(struct file *file, char __user *buffer, size_t len, loff_t *offset)
+// b64_buffer is used to store the encoded base64
+// data.
+static char* 	b64_buffer = NULL;
+
+// pgen_read is the function used to read from the file operations
+// structure.
+// The function generates randomly some bytes and encodes them in
+// base64 before sending them in the user space.
+static ssize_t pgen_read(struct file*	file,
+	  		 char __user*	buffer,
+			 size_t 	len,
+			 loff_t*	offset)
 {
-	u8 	value;
-	char*	buff;
-	size_t 	u8_len = pgen_base64_len(sizeof(u8));
+	u8 		value;
+	size_t		encoded_data_len, formatted_data_len;
+	size_t 		u8_len = pgen_base64_len(sizeof(u8));
+	unsigned long 	copy_ret;
 
-	buff = kmalloc(u8_len, GFP_KERNEL);
-	if (!buff) {
-		return (-ENOMEM);
-	}
+	encoded_data_len   = pgen_base64_len(sizeof(u8));
+	formatted_data_len = encoded_data_len + 2; // \n\0
 
 	get_random_bytes(&value, sizeof(u8));
-	pgen_base64_encode(&value, sizeof(u8), buff);
+	pgen_base64_encode(&value, sizeof(u8), b64_buffer);
+	b64_buffer[u8_len    ] = '\n';
+	b64_buffer[u8_len + 1] = '\0';
 
-	if (copy_to_user(buffer, buff, u8_len < len ? u8_len : len) != 0) {
+	copy_ret = copy_to_user(buffer,
+			        b64_buffer,
+				min(len, formatted_data_len));
+	if (copy_ret != 0) {
 		LOG(KERN_WARNING, "couldn't copy to user space");
 		return (-EFAULT);
 	}
 
-	return (u8_len < len ? u8_len : len);
+	return (min(len, formatted_data_len));
 }
 
-static int pgen_open(struct inode *node, struct file *file)
+static int pgen_open(struct inode *node,
+		     struct file *file)
 {
 	if (is_used != 0)
 		return (-EBUSY);
 
-	is_used = 1;
+	b64_buffer = kmalloc(
+			pgen_base64_len(sizeof(u8)) + 2, // \n\0
+			GFP_KERNEL);
+	if (!b64_buffer) {
+		LOG(KERN_ERR, "coultn't allocate memory: ENOMEM\n");
+		return (-ENOMEM);
+	}
 
-	LOG(KERN_INFO, "open()\n");
+	is_used = 1;
 	return (0);
 }
 
-static int pgen_release(struct inode *node, struct file *file)
+static int pgen_release(struct inode *node, 
+			struct file *file)
 {
+	kfree(b64_buffer);
 	is_used = 0;
-
-	LOG(KERN_INFO, "release()\n");
 	return (0);
 }
