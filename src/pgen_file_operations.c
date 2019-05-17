@@ -35,6 +35,7 @@ static int 	is_used = 0;
 // b64_buffer is used to store the encoded base64
 // data.
 static char* 	b64_buffer = NULL;
+static ssize_t	b64_buffer_idx = -1;
 
 // pgen_read is the function used to read from the file operations
 // structure.
@@ -48,24 +49,39 @@ static ssize_t pgen_read(struct file*	file,
 	u8 		value;
 	size_t		encoded_data_len, formatted_data_len;
 	unsigned long 	copy_ret;
+	size_t 		bytes_wrote;
 
 	encoded_data_len   = pgen_base64_len(sizeof(u8));
 	formatted_data_len = encoded_data_len + 2; // \n\0
+	bytes_wrote = 0;
 
-	get_random_bytes(&value, sizeof(u8));
-	pgen_base64_encode(&value, sizeof(u8), b64_buffer);
-	b64_buffer[encoded_data_len    ] = '\n';
-	b64_buffer[encoded_data_len + 1] = '\0';
+	do {
+		if (b64_buffer_idx == -1) {
+			get_random_bytes(&value, sizeof(u8));
+			pgen_base64_encode(&value, sizeof(u8), b64_buffer);
+			b64_buffer[encoded_data_len    ] = '\n';
+			b64_buffer[encoded_data_len + 1] = '\0';
+			b64_buffer_idx = 0;
+		}
 
-	copy_ret = copy_to_user(buffer,
-			        b64_buffer,
-				min(len, formatted_data_len));
-	if (copy_ret != 0) {
-		LOG(KERN_WARNING, "couldn't copy to user space");
-		return (-EFAULT);
-	}
+		copy_ret = copy_to_user(
+				buffer,
+				b64_buffer + b64_buffer_idx,
+				min(len - bytes_wrote,
+				    formatted_data_len - b64_buffer_idx));
+		if (copy_ret != 0) {
+			LOG(KERN_WARNING, "couldn't copy to user space");
+			return (-EFAULT);
+		}
 
-	return (min(len, formatted_data_len));
+		bytes_wrote += min(len, formatted_data_len - b64_buffer_idx);
+		b64_buffer_idx += min(len, formatted_data_len - b64_buffer_idx);
+		if (b64_buffer_idx >= formatted_data_len) {
+			b64_buffer_idx = -1;
+		}
+	} while (bytes_wrote < len);
+
+	return (bytes_wrote);
 }
 
 static int pgen_open(struct inode *node,
