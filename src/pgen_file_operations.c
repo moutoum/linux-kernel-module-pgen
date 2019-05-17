@@ -47,7 +47,6 @@ static ssize_t pgen_read(struct file*	file,
 {
 	u8 		value;
 	size_t		encoded_data_len, formatted_data_len;
-	size_t 		u8_len = pgen_base64_len(sizeof(u8));
 	unsigned long 	copy_ret;
 
 	encoded_data_len   = pgen_base64_len(sizeof(u8));
@@ -55,8 +54,8 @@ static ssize_t pgen_read(struct file*	file,
 
 	get_random_bytes(&value, sizeof(u8));
 	pgen_base64_encode(&value, sizeof(u8), b64_buffer);
-	b64_buffer[u8_len    ] = '\n';
-	b64_buffer[u8_len + 1] = '\0';
+	b64_buffer[encoded_data_len    ] = '\n';
+	b64_buffer[encoded_data_len + 1] = '\0';
 
 	copy_ret = copy_to_user(buffer,
 			        b64_buffer,
