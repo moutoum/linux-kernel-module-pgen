@@ -6,10 +6,12 @@ static const char alpha_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 
 size_t pgen_base64_len(size_t data_size)
 {
-	return (((data_size / 3) + !!(data_size % 3)) * 4 + 1);
+	return (((data_size / 3) + !!(data_size % 3)) * 4);
 }
 
-void pgen_base64_encode(const unsigned char *cdata, size_t data_size, char *buffer)
+void pgen_base64_encode(const unsigned char *cdata,
+			size_t data_size,
+			char *buffer)
 {
 	size_t 		len;
 	unsigned char 	from[3];
