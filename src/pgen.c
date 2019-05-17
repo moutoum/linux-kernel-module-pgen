@@ -6,17 +6,18 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Maxence Moutoussamy <maxence.moutoussamy1@gmail.com>");
-MODULE_DESCRIPTION("This module is used to generate u8 values encoded in base64.");
+MODULE_DESCRIPTION("This module is used to generate u8 " \
+		   "values encoded in base64.");
 MODULE_VERSION("1.0");
 
 static __init int pgen_init(void)
 {
-	int error_code;
+	int err;
 
-	error_code = misc_register(&pgen_misc);
-	if (error_code < 0) {
-		LOG(KERN_ERR, "couldn't register misc device: %d\n", error_code);
-		return (error_code);
+	err = misc_register(&pgen_misc);
+	if (err < 0) {
+		LOG(KERN_ERR, "couldn't register misc device: %d\n", err);
+		return (err);
 	}
 
 	LOG(KERN_INFO, "initialized\n");
