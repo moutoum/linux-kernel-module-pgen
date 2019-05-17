@@ -1,5 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/init.h>
 
 #include "pgen.h"
@@ -9,6 +10,8 @@ MODULE_AUTHOR("Maxence Moutoussamy <maxence.moutoussamy1@gmail.com>");
 MODULE_DESCRIPTION("This module is used to generate u8 " \
 		   "values encoded in base64.");
 MODULE_VERSION("1.0");
+
+module_param(payload_size, ulong, 0644);
 
 static __init int pgen_init(void)
 {

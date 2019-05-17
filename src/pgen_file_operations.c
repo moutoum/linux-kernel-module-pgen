@@ -37,6 +37,13 @@ static int 	is_used = 0;
 static char* 	b64_buffer = NULL;
 static ssize_t	b64_buffer_idx = -1;
 
+// payload_size is a module parameter. It is used to choose the
+// size of a payload in term of number of bytes randomly generated.
+size_t 		payload_size = 1;
+
+// payload_buffer is used to collect randomly generated data.
+static char*	payload_buffer = NULL;
+
 // pgen_read is the function used to read from the file operations
 // structure.
 // The function generates randomly some bytes and encodes them in
@@ -46,19 +53,19 @@ static ssize_t pgen_read(struct file*	file,
 			 size_t 	len,
 			 loff_t*	offset)
 {
-	u8 		value;
 	size_t		encoded_data_len, formatted_data_len;
 	unsigned long 	copy_ret;
 	size_t 		bytes_wrote;
 
-	encoded_data_len   = pgen_base64_len(sizeof(u8));
+	encoded_data_len   = pgen_base64_len(payload_size);
 	formatted_data_len = encoded_data_len + 2; // \n\0
 	bytes_wrote = 0;
 
 	do {
 		if (b64_buffer_idx == -1) {
-			get_random_bytes(&value, sizeof(u8));
-			pgen_base64_encode(&value, sizeof(u8), b64_buffer);
+			get_random_bytes(payload_buffer, payload_size);
+			pgen_base64_encode(payload_buffer, payload_size,
+					   b64_buffer);
 			b64_buffer[encoded_data_len    ] = '\n';
 			b64_buffer[encoded_data_len + 1] = '\0';
 			b64_buffer_idx = 0;
@@ -91,10 +98,17 @@ static int pgen_open(struct inode *node,
 		return (-EBUSY);
 
 	b64_buffer = kmalloc(
-			pgen_base64_len(sizeof(u8)) + 2, // \n\0
+			pgen_base64_len(payload_size) + 2, // \n\0
 			GFP_KERNEL);
 	if (!b64_buffer) {
-		LOG(KERN_ERR, "coultn't allocate memory: ENOMEM\n");
+		LOG(KERN_ERR, "couldn't allocate memory: ENOMEM\n");
+		return (-ENOMEM);
+	}
+
+	payload_buffer = kmalloc(payload_size, GFP_KERNEL);
+	if (!payload_buffer) {
+		kfree(b64_buffer);
+		LOG(KERN_ERR, "couldn't allocate memory: ENOMEM\n");
 		return (-ENOMEM);
 	}
 
@@ -105,6 +119,7 @@ static int pgen_open(struct inode *node,
 static int pgen_release(struct inode *node, 
 			struct file *file)
 {
+	kfree(payload_buffer);
 	kfree(b64_buffer);
 	is_used = 0;
 	return (0);

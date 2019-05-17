@@ -19,8 +19,7 @@ void pgen_base64_encode(const unsigned char *cdata,
 	size_t		j;
 
 	j = 0;
-	len = 0;
-	for (len = 0; len < data_size / 3; len += 3, j += 4) {
+	for (len = 0; len / 3 < data_size / 3; len += 3, j += 4) {
 
 		from[0] = cdata[len    ];
 		from[1] = cdata[len + 1];
