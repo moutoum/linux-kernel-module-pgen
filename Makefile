@@ -5,6 +5,7 @@ TARGET = pgen
 obj-m := ${TARGET}.o
 
 ${TARGET}-objs += ./src/pgen.o \
+		  ./src/pgen_base64.o \
 		  ./src/pgen_file_operations.o
 
 ccflags-y += -I ${PWD}/include
