@@ -1,4 +1,4 @@
-#include <stddef.h>
+#include <linux/types.h>
 
 static const char alpha_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 				    "abcdefghijklmnopqrstuvwxyz" \
