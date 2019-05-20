@@ -91,6 +91,9 @@ static ssize_t pgen_read(struct file*	file,
 	return (bytes_wrote);
 }
 
+// pgen_read is the function used to read from the file operations
+// structure.
+// The function locks the module and allocate memory for the buffers.
 static int pgen_open(struct inode *node,
 		     struct file *file)
 {
@@ -116,6 +119,10 @@ static int pgen_open(struct inode *node,
 	return (0);
 }
 
+// pgen_read is the function used to read from the file operations
+// structure.
+// The function frees the memory allocated, resets the state of the module
+// and unlocks it.
 static int pgen_release(struct inode *node, 
 			struct file *file)
 {

@@ -4,11 +4,15 @@ static const char alpha_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 				    "abcdefghijklmnopqrstuvwxyz" \
 				    "0123456789+/";
 
+// pgen_base64_len returns the size of the base64 encoded payload depending
+// on the data_size.
 size_t pgen_base64_len(size_t data_size)
 {
 	return (((data_size / 3) + !!(data_size % 3)) * 4);
 }
 
+// pgen_base64_encode transforms the binary data into base64 encoding.
+// The buffer should have enought memory space.
 void pgen_base64_encode(const unsigned char *cdata,
 			size_t data_size,
 			char *buffer)
