@@ -121,6 +121,9 @@ static int pgen_release(struct inode *node,
 {
 	kfree(payload_buffer);
 	kfree(b64_buffer);
+	payload_buffer = NULL;
+	b64_buffer = NULL;
+	b64_buffer_idx = -1;
 	is_used = 0;
 	return (0);
 }
